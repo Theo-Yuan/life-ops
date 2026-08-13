@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# 审计快照（自动生成，用 ops/audit.py 查询历史）
+audit/snapshots/
+
+# 鉴权文件（generate_auth.py 生成，含真实 Key）
+.agents/skills/_shared/auth.*.md
+
+# 部署目录（迁移后删除）
+deploy/

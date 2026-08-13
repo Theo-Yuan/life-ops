@@ -1,0 +1,33 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontmatter-workout:
+      run: shared/tools/check-frontmatter.sh docs/workout/knowledge
+      skip:
+        - merge
+        - rebase
+    sidebar-workout:
+      run: shared/tools/check-sidebar-links.sh docs/workout
+      skip:
+        - merge
+        - rebase
+    frontmatter-english:
+      run: shared/tools/check-frontmatter.sh docs/english/knowledge
+      skip:
+        - merge
+        - rebase
+    sidebar-english:
+      run: shared/tools/check-sidebar-links.sh docs/english
+      skip:
+        - merge
+        - rebase
+    frontmatter-finance:
+      run: shared/tools/check-frontmatter.sh docs/finance/knowledge
+      skip:
+        - merge
+        - rebase
+    sidebar-finance:
+      run: shared/tools/check-sidebar-links.sh docs/finance
+      skip:
+        - merge
+        - rebase
