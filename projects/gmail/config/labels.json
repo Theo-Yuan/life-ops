@@ -1,0 +1,85 @@
+{
+  "categories": {
+    "Finance": {
+      "important": true,
+      "children": ["Finance/Banking", "Finance/Receipt", "Finance/Tax"],
+      "filters": [
+        "from:notification@service.bank.za.group",
+        "from:mail.za.group",
+        "from:eDelivery@etradefrommorganstanley.com",
+        "from:interactivebrokers.com",
+        "from:hsbc.com.hk"
+      ]
+    },
+    "Travel": {
+      "important": true,
+      "children": ["Travel/Airline", "Travel/Hotel", "Travel/Japan"],
+      "filters": ["from:email.koreanair.com", "from:hilton.com"]
+    },
+    "Dev": {
+      "important": true,
+      "children": ["Dev/GitHub", "Dev/AI", "Dev/Database", "Dev/Python"],
+      "filters": [
+        "from:noreply@github.com",
+        "from:deepseek.com"
+      ]
+    },
+    "Health": {
+      "important": true,
+      "children": []
+    },
+    "Newsletters": {
+      "important": false,
+      "archive": true,
+      "children": ["Newsletters/News", "Newsletters/Tech"],
+      "filters": [
+        "from:nytimes.com",
+        "from:medium.com",
+        "from:flipboard.com",
+        "from:feedblitz.com",
+        "from:openrouter.ai",
+        "from:deeplearning.ai",
+        "from:realpython.com",
+        "from:mongodb.com",
+        "list:早报新明午后推荐",
+        "from:thestraitstimes"
+      ]
+    },
+    "Social": {
+      "important": false,
+      "archive": true,
+      "children": ["Social/Reddit", "Social/Twitch", "Social/LinkedIn", "Social/Instagram", "Social/Facebook", "Social/Netflix"],
+      "filters": [
+        "from:redditmail.com",
+        "from:twitch.tv",
+        "from:linkedin.com",
+        "from:priority.instagram.com",
+        "from:facebookmail.com",
+        "from:netflix.com"
+      ]
+    },
+    "Learning": {
+      "important": false,
+      "archive": true,
+      "children": ["Learning/Codecademy", "Learning/Guitar", "Learning/General"],
+      "filters": [
+        "from:codecademy.com",
+        "from:nationalguitaracademy.com",
+        "from:kaggle.com",
+        "from:coursera.com OR from:udemy.com OR from:khanacademy.com"
+      ]
+    },
+    "Shopping": {
+      "important": false,
+      "archive": true,
+      "children": [],
+      "filters": ["from:amazon.com OR from:shopee"]
+    },
+    "Ads": {
+      "important": false,
+      "archive": true,
+      "children": [],
+      "filters": ["from:studyportalsmail.com", "from:tello.com"]
+    }
+  }
+}
