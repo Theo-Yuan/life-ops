@@ -1,0 +1,31 @@
+# 环境变量
+.env
+
+# 用户画像（含个人财务隐私）
+.agents/profile.md
+
+# 鉴权文件
+.agents/skills/_shared/auth.*.md
+
+# 数据库
+.agents/db/*.db
+.agents/db/*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

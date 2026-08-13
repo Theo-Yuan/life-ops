@@ -1,0 +1,9 @@
+- [🏠 首页](README.md)
+- **理财知识库**
+  - [📖 快速导航](knowledge/快速导航.md)
+  - [🧠 核心概念](knowledge/核心概念.md)
+  - [🛠️ 实践方法](knowledge/实践方法.md)
+  - [🗺️ 学习路径](knowledge/学习路径.md)
+  - [📝 评估体系](knowledge/评估体系.md)
+  - [🏦 金融产品与市场](knowledge/金融产品与市场.md)
+  - [📚 来源文献](knowledge/来源文献.md)
