@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -67,14 +68,14 @@ RECENT_PLACEHOLDER
 MISSED_PLACEHOLDER
 
 ## 你的任务
-1. 读取 .agents/profile.md 了解用户偏好、限制、当前阶段（减载周等）
+1. 读取 projects/workout/.agents/profile.md 了解用户偏好、限制、当前阶段（减载周等）
 2. 综合判断今天该预告什么训练：
    - **先处理漏练**：若 missed_sessions 存在漏练的训练日，应优先考虑补练
      （把漏练的分化类型补到今天/最近可练日），而不是直接按原计划推进
    - **以最近实际训练进度为准**：看最近一次实际训练是什么阶段（推/拉/腿），按 PPL 循环（推→拉→腿）取下一个作为今天阶段
    - 官方计划仅作参考：若官方计划今天标注了训练日，可作为交叉验证；但用户实际可能休息/加练/调整，不要假设严格按计划执行
    - 结合 profile 的偏好（如腿部打磨期小重量）、减载周状态、身体疲劳等
-3. 确定今天的阶段后，从知识库/计划设计中选择该阶段的动作（或参考官方计划该日的动作）
+3. 确定今天的阶段后，从 docs/workout/knowledge/计划设计.md 中选择该阶段的动作（或参考官方计划该日的动作）
 4. 生成 Discord 消息并发送到 target="学习星球/健身打卡"
 5. 发送完成后输出 Done
 
@@ -132,7 +133,7 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
     opencode run \
         --pure \
         --auto \
-        --dir "$PROJECT_DIR" \
+        --dir "$MONOREPO_ROOT" \
         --title "训练预告 $TODAY" \
         "$(cat "$PROMPT_FILE")" &
     OP_PID=$!

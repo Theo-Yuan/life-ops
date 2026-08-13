@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
 source "$SCRIPT_DIR/digest_config"
 
 TODAY=$(date +%Y-%m-%d)
@@ -59,7 +60,7 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
   opencode run \
     --pure \
     --auto \
-    --dir "$PROJECT_DIR" \
+    --dir "$MONOREPO_ROOT" \
     --title "每日文章推送 $TODAY" \
     "$(cat "$PROMPT_FILE")" >>"$LOG" 2>&1 &
   OP_PID=$!

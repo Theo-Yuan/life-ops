@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -55,7 +56,7 @@ TRAIN_PLACEHOLDER
 RECENT_PLACEHOLDER
 
 ## 你的任务
-1. 读取 .agents/profile.md 了解用户偏好、当前阶段（减载周等）
+1. 读取 projects/workout/.agents/profile.md 了解用户偏好、当前阶段（减载周等）
 2. 生成训练完成摘要，发送到 target="学习星球/健身打卡"
 3. 结合 profile 和同类历史给出个性化点评（如进步/持平/退步、是否达标、建议）
 
@@ -108,7 +109,7 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
     opencode run \
         --pure \
         --auto \
-        --dir "$PROJECT_DIR" \
+        --dir "$MONOREPO_ROOT" \
         --title "训练摘要 $TODAY" \
         "$(cat "$PROMPT_FILE")" &
     OP_PID=$!

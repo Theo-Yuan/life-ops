@@ -6,6 +6,10 @@ updated: 2026-07-26
 
 # 项目知识基础设施搭建工作流
 
+> ⚠️ **已废弃（2026-08-13）**：本工作流描述「独立项目 + 根目录 knowledge/ + 根目录 Docsify」的历史布局。
+> 现已合并为 `life-ops` monorepo，知识库统一在 `docs/<name>/knowledge/`、技能统一在根 `.agents/skills/`。
+> 新增领域请参照 `README.md` 与 `theo-docs/MRG-Designs/Life Ops Monorepo/Design.md`，本文件仅作历史参考。
+
 > 从训记训练助手项目中提炼的可复用模式。
 > 适用于任何需要 "Agent + 个人数据 + 知识库 + 移动端访问" 的项目。
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
 TMP="$PROJECT_DIR/tmp"
 mkdir -p "$TMP"
 
@@ -84,7 +85,7 @@ TIMEOUT_SEC=300
 
 for attempt in $(seq 1 $MAX_ATTEMPTS); do
     echo "[$(date '+%H:%M:%S')] Attempt $attempt/$MAX_ATTEMPTS: opencode..." >&2
-    opencode run --pure --auto --dir "$PROJECT_DIR" --title "邮件摘要 $TODAY" "$PROMPT" &
+    opencode run --pure --auto --dir "$MONOREPO_ROOT" --title "邮件摘要 $TODAY" "$PROMPT" &
     PID=$!
     elapsed=0
     while [ $elapsed -lt $TIMEOUT_SEC ]; do
