@@ -1,0 +1,23 @@
+# Secrets
+.env
+.agents/skills/_shared/auth.*.md
+
+# Data
+.agents/db/*.db
+
+# Profile (personal data)
+.agents/profile.md
+
+# Temp
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
