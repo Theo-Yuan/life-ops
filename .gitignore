@@ -16,3 +16,8 @@ audit/snapshots/
 
 # 部署目录（迁移后删除）
 deploy/
+
+# 个人身份/凭证（脱敏）
+.agents/discord.config
+projects/workout/.ngrok/
+projects/article/.agents/sched/digest_config

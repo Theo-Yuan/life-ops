@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$PROJECT_DIR/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -123,7 +124,7 @@ HEALTH_PLACEHOLDER
    - 修复动作（改了哪些文件、commit SHA）
    - 验证结果
    - 状态改为 resolved
-7. **发送报告**到 target="f1andre8472"（Discord 私信），包含：
+7. **发送报告**到 target="__DC_TARGET__"（Discord 私信），包含：
    - 哪个任务、哪天失败、根因
    - 修复动作 + commit SHA + 验证结果
    - 若属正常现象，说明为何不算故障
@@ -149,6 +150,7 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
+sed -i '' "s|__DC_TARGET__|$DISCORD_DM_USER|g" "$PROMPT_FILE"
 
 MAX_ATTEMPTS=3
 TIMEOUT_SEC=300

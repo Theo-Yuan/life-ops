@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
+source "$MONOREPO_ROOT/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -76,7 +77,7 @@ MISSED_PLACEHOLDER
    - 官方计划仅作参考：若官方计划今天标注了训练日，可作为交叉验证；但用户实际可能休息/加练/调整，不要假设严格按计划执行
    - 结合 profile 的偏好（如腿部打磨期小重量）、减载周状态、身体疲劳等
 3. 确定今天的阶段后，从 docs/workout/knowledge/计划设计.md 中选择该阶段的动作（或参考官方计划该日的动作）
-4. 生成 Discord 消息并发送到 target="学习星球/健身打卡"
+4. 生成 Discord 消息并发送到 target="__DC_TARGET__"
 5. 发送完成后输出 Done
 
 ## 消息格式（严格遵循）
@@ -122,6 +123,7 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
+sed -i '' "s|__DC_TARGET__|$DISCORD_WORKOUT_TARGET|g" "$PROMPT_FILE"
 
 MAX_ATTEMPTS=3
 TIMEOUT_SEC=90

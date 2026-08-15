@@ -47,4 +47,4 @@ description: "人生运营 Bootup Skill — 个人项目 portfolio 全貌，开�
 - **数据以实际记录为准**，不要编造；脚本提供什么就用什么
 - 点评结合各项目 profile（`projects/<name>/.agents/profile.md`）
 - 文档写入 `$AGENT_DOCS_DIR/projects/<project>/docs/`
-- 报告发送：频道用 `学习星球/<频道名>`，私信用用户名 `f1andre8472`
+- 报告发送：频道用 `YOUR_SERVER/<频道名>`，私信用用户名 `YOUR_DISCORD_USERNAME`

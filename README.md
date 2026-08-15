@@ -61,4 +61,4 @@ make check
 - 数据以实际记录为准，不要编造；脚本提供什么就用什么。
 - 个人档案在各项目 `projects/<name>/.agents/profile.md`（gitignored）。
 - 领域技能统一在根 `.agents/skills/`，知识库在 `docs/<name>/knowledge/`。
-- 报告发送：频道用 `学习星球/<频道名>`，私信用用户名 `f1andre8472`。
+- 报告发送：频道用 `YOUR_SERVER/<频道名>`，私信用用户名 `YOUR_DISCORD_USERNAME`。

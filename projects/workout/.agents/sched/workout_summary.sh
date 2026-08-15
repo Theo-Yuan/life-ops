@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
+source "$MONOREPO_ROOT/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -57,7 +58,7 @@ RECENT_PLACEHOLDER
 
 ## 你的任务
 1. 读取 projects/workout/.agents/profile.md 了解用户偏好、当前阶段（减载周等）
-2. 生成训练完成摘要，发送到 target="学习星球/健身打卡"
+2. 生成训练完成摘要，发送到 target="__DC_TARGET__"
 3. 结合 profile 和同类历史给出个性化点评（如进步/持平/退步、是否达标、建议）
 
 ## 消息格式（严格遵循）
@@ -98,6 +99,7 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
+sed -i '' "s|__DC_TARGET__|$DISCORD_WORKOUT_TARGET|g" "$PROMPT_FILE"
 
 MAX_ATTEMPTS=3
 TIMEOUT_SEC=90

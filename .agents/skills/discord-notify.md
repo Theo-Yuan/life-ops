@@ -8,7 +8,7 @@ description: "训记 Discord 通知 —— 训练预告 / 完成分享 / 分析�
 
 - Discord MCP Server 已配置（`opencode.json` 中有 `discord` MCP）
 - Bot 已邀请到目标服务器并有 Send Messages 权限
-- 目标频道：`学习星球/健身打卡`（ID: 1531141390208077895）
+- 目标频道：`YOUR_SERVER/YOUR_CHANNEL`（ID: YOUR_CHANNEL_ID）
 
 ## 三种消息类型
 
@@ -110,7 +110,7 @@ GROUP BY m.name
 
 ```
 discord_send_message(
-  target = "学习星球/健身打卡",
+  target = "YOUR_SERVER/YOUR_CHANNEL",
   message = {组装好的消息}
 )
 ```
@@ -128,8 +128,8 @@ discord_send_message(
 
 | 服务器 | 频道 | 用途 |
 |--------|------|------|
-| 学习星球 | #健身打卡 | 训练分享主频道 |
-| 学习星球 | #✅学习打卡 | 学习打卡（非训练） |
+| YOUR_SERVER | #YOUR_CHANNEL | 训练分享主频道 |
+| YOUR_SERVER | #YOUR_STUDY_CHANNEL | 学习打卡（非训练） |
 
 ---
 
@@ -162,7 +162,7 @@ python3 .agents/sched/workout_summary.py
 底层发送工具，支持命令行调用。
 
 ```bash
-echo "消息内容" | python3 .agents/sched/send_discord.py "学习星球/健身打卡"
+echo "消息内容" | python3 .agents/sched/send_discord.py "YOUR_SERVER/YOUR_CHANNEL"
 ```
 
 **Token 来源**：macOS Keychain（`discord-bot-token` / `opencode`）

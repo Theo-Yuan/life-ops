@@ -5,6 +5,22 @@ import asyncio
 import discord
 
 
+
+
+def _discord_cfg() -> dict:
+    from pathlib import Path as _P
+    cfg = {}
+    p = _P(__file__).resolve()
+    for parent in [p, *p.parents]:
+        f = parent / ".agents" / "discord.config"
+        if f.exists():
+            for ln in f.read_text().splitlines():
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and "=" in ln:
+                    k, _, v = ln.partition("=")
+                    cfg[k.strip()] = v.strip().strip('"')
+            break
+    return cfg
 def get_token() -> str:
     """Read Discord bot token from macOS Keychain."""
     try:
@@ -74,7 +90,7 @@ async def send_message(token: str, target: str, message: str) -> str:
 
 
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else "学习星球/健身打卡"
+    target = sys.argv[1] if len(sys.argv) > 1 else _discord_cfg().get("DISCORD_WORKOUT_TARGET", "")
     message = sys.stdin.read().strip()
     if not message:
         print("ERROR: No message provided on stdin.", file=sys.stderr)

@@ -2,6 +2,7 @@
 set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
+source "$MONOREPO_ROOT/.agents/discord.config" 2>/dev/null || true
 TMP="$PROJECT_DIR/tmp"
 mkdir -p "$TMP"
 
@@ -20,7 +21,7 @@ TOTAL=$(echo "$FETCH_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.
 echo "[$(date '+%H:%M:%S')] Fetched $TOTAL emails → $TMP/emails.json" >&2
 
 cat > "$TMP/prompt.txt" <<'EOF'
-你是邮件助手。请阅读 emails.json，生成今日邮件摘要并发送到 Discord 私信（target="f1andre8472"）。
+你是邮件助手。请阅读 emails.json，生成今日邮件摘要并发送到 Discord 私信（target="__DC_TARGET__"）。
 
 ## 数据
 /tmp/emails.json 的完整路径是：EMAILS_JSON_PATH
@@ -66,7 +67,7 @@ cat > "$TMP/prompt.txt" <<'EOF'
 ◆ 金额、时间、汇率等关键数据必须保留
 ◆ 如有异常（定投失败、大额转账、安全提醒），在总体摘要中提及
 
-5. 发送到 target="f1andre8472"（Discord 私信），一条消息不超过 1900 字符
+5. 发送到 target="__DC_TARGET__"（Discord 私信），一条消息不超过 1900 字符
 6. 输出 Done
 
 ## 约束
@@ -78,7 +79,7 @@ cat > "$TMP/prompt.txt" <<'EOF'
 EOF
 
 EMAILS_PATH="$TMP/emails.json"
-PROMPT=$(sed "s|EMAILS_JSON_PATH|$EMAILS_PATH|g" "$TMP/prompt.txt")
+PROMPT=$(sed -e "s|EMAILS_JSON_PATH|$EMAILS_PATH|g" -e "s|__DC_TARGET__|$DISCORD_DM_USER|g" "$TMP/prompt.txt")
 
 MAX_ATTEMPTS=2
 TIMEOUT_SEC=300

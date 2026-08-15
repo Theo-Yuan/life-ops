@@ -13,6 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 MONOREPO_ROOT="$(git -C "$PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_DIR")"
+source "$MONOREPO_ROOT/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY="${1:-$(date +%Y-%m-%d)}"
@@ -59,7 +60,7 @@ DATA_PLACEHOLDER
 
 ## 你的任务
 1. 读取 projects/english/.agents/profile.md 了解用户目标（IELTS 6.5，单科不低于 6.0）和弱项（听力、词组/搭配）
-2. 生成中文打卡消息，发送到 target="学习星球/学习打卡"
+2. 生成中文打卡消息，发送到 target="__DC_TARGET__"
 3. 结合 profile 和趋势数据给出个性化点评（连续打卡天数、进步/退步 vs 近 7/30 天、是否达标、建议）
 
 ## 消息格式（严格遵循）
@@ -96,6 +97,7 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
+sed -i '' "s|__DC_TARGET__|$DISCORD_STUDY_TARGET|g" "$PROMPT_FILE"
 
 MAX_ATTEMPTS=3
 TIMEOUT_SEC=300

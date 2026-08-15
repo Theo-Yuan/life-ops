@@ -15,11 +15,27 @@ import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+
+
+def _discord_cfg() -> dict:
+    from pathlib import Path as _P
+    cfg = {}
+    p = _P(__file__).resolve()
+    for parent in [p, *p.parents]:
+        f = parent / ".agents" / "discord.config"
+        if f.exists():
+            for ln in f.read_text().splitlines():
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and "=" in ln:
+                    k, _, v = ln.partition("=")
+                    cfg[k.strip()] = v.strip().strip('"')
+            break
+    return cfg
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DB_PATH = PROJECT_ROOT / ".agents" / "db" / "train.db"
 PROFILE_PATH = PROJECT_ROOT / ".agents" / "profile.md"
 
-CHANNEL_ID = "1531141390208077895"
+CHANNEL_ID = _discord_cfg().get("DISCORD_WORKOUT_CHANNEL_ID", "")
 
 PPL_CYCLE = ["推", "拉", "腿"]
 

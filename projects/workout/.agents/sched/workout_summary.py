@@ -6,10 +6,26 @@ import sys
 from datetime import date
 from pathlib import Path
 
+
+
+def _discord_cfg() -> dict:
+    from pathlib import Path as _P
+    cfg = {}
+    p = _P(__file__).resolve()
+    for parent in [p, *p.parents]:
+        f = parent / ".agents" / "discord.config"
+        if f.exists():
+            for ln in f.read_text().splitlines():
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and "=" in ln:
+                    k, _, v = ln.partition("=")
+                    cfg[k.strip()] = v.strip().strip('"')
+            break
+    return cfg
 DISCORD_PYTHON = "/Users/theoyuan/.local/share/discord-mcp/venv/bin/python"
 
 TODAY = date.today().isoformat()
-TARGET = "学习星球/健身打卡"
+TARGET = _discord_cfg().get("DISCORD_WORKOUT_TARGET", "")
 
 
 def query_date(date_str: str) -> list:

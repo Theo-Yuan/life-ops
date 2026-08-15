@@ -7,9 +7,25 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
+
+
+def _discord_cfg() -> dict:
+    from pathlib import Path as _P
+    cfg = {}
+    p = _P(__file__).resolve()
+    for parent in [p, *p.parents]:
+        f = parent / ".agents" / "discord.config"
+        if f.exists():
+            for ln in f.read_text().splitlines():
+                ln = ln.strip()
+                if ln and not ln.startswith("#") and "=" in ln:
+                    k, _, v = ln.partition("=")
+                    cfg[k.strip()] = v.strip().strip('"')
+            break
+    return cfg
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 SNAPSHOTS_DIR = PROJECT_ROOT / "tmp" / "daily-dictation"
-CHANNEL_ID = "1466302720515379307"
+CHANNEL_ID = _discord_cfg().get("DISCORD_STUDY_CHANNEL_ID", "")
 
 
 def get_bot_token() -> str:

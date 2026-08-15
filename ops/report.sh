@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$PROJECT_DIR/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
@@ -105,7 +106,7 @@ TASK_PLACEHOLDER
 2. 生成一份聚合日报，包含：
    - 训练 / 听写 / 理财学习 今日状态 + 简短点评（进步/持平/退步）
    - 定时任务执行报告（哪些任务跑了、成功/失败、异常提醒）
-3. 发送到 target="f1andre8472"（Discord 私信）
+3. 发送到 target="__DC_TARGET__"（Discord 私信）
 4. 发送完成后输出 Done
 
 ## 消息格式
@@ -136,6 +137,7 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
+sed -i '' "s|__DC_TARGET__|$DISCORD_DM_USER|g" "$PROMPT_FILE"
 
 MAX_ATTEMPTS=3
 TIMEOUT_SEC=120
