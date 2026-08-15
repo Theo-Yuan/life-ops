@@ -53,7 +53,7 @@ description: "理财导师 Skill — 核心教学能力，负责知识传授、�
 
 ### 首次启动
 1. 读取 `projects/finance/.agents/profile.md` 了解用户水平和目标
-2. 读取 `03-学习路径.md` 确定学习起点
+2. 读取 `学习路径.md` 确定学习起点
 3. 输出个性化的学习计划建议
 4. 确认后再开始第一课
 
@@ -78,6 +78,6 @@ description: "理财导师 Skill — 核心教学能力，负责知识传授、�
 **用户**: 钱都放余额宝...
 **导师**: 余额宝其实就是一个货币基金，你已经迈出第一步了。货币基金的特点是安全、灵活，但收益不高。想不想了解除了余额宝之外，还有哪些选择？
 
-> **知识库**: 另见 `docs/finance/knowledge/00-快速导航.md`
+> **知识库**: 另见 `docs/finance/knowledge/快速导航.md`
 > **用户画像**: 另见 `projects/finance/.agents/profile.md`
-> **学习路径**: 另见 `docs/finance/knowledge/03-学习路径.md`
+> **学习路径**: 另见 `docs/finance/knowledge/学习路径.md`

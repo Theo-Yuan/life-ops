@@ -66,5 +66,5 @@ description: "记账预算知识模块 — 消费分类、预算策略、支出�
 - 预算 vs 实际对比仪表盘
 - 月度消费趋势报告
 
-> **知识库**: 另见 `docs/finance/knowledge/00-快速导航.md`
+> **知识库**: 另见 `docs/finance/knowledge/快速导航.md`
 > **用户画像**: 另见 `projects/finance/.agents/profile.md`

@@ -60,6 +60,6 @@ description: "雅思备考知识 Skill — 评分标准、备考策略、各科�
 - 1 篇写作批改
 - 周末错题回顾
 
-> **知识库**: 另见 `docs/english/knowledge/00-快速导航.md`
-> **中国人特化**: 另见 `docs/english/knowledge/07-中国人学英语：从应试到实战.md`
+> **知识库**: 另见 `docs/english/knowledge/快速导航.md`
+> **中国人特化**: 另见 `docs/english/knowledge/中国人学英语：从应试到实战.md`
 > **用户画像**: 另见 `projects/english/.agents/profile.md`

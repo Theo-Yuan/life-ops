@@ -51,5 +51,5 @@ description: "资产管理知识模块 — 净资产追踪、资产分类、财�
 - 财务健康度仪表盘
 - 预算执行追踪
 
-> **知识库**: 另见 `docs/finance/knowledge/00-快速导航.md`
+> **知识库**: 另见 `docs/finance/knowledge/快速导航.md`
 > **用户画像**: 另见 `projects/finance/.agents/profile.md`

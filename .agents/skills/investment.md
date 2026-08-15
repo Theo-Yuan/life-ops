@@ -64,5 +64,5 @@ description: "投资知识模块 — 投资品种、组合管理、收益分析�
 - 组合再平衡提醒
 - 投资表现报告
 
-> **知识库**: 另见 `docs/finance/knowledge/00-快速导航.md`
+> **知识库**: 另见 `docs/finance/knowledge/快速导航.md`
 > **用户画像**: 另见 `projects/finance/.agents/profile.md`
