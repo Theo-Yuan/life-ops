@@ -6,8 +6,8 @@ description: "训记 Discord 通知 —— 训练预告 / 完成分享 / 分析�
 
 ## 前置条件
 
-- Discord MCP Server 已配置（`opencode.json` 中有 `discord` MCP）
 - Bot 已邀请到目标服务器并有 Send Messages 权限
+- Bot token 已存入 macOS Keychain（`discord-bot-token` / `opencode`）
 - 目标频道：`YOUR_SERVER/YOUR_CHANNEL`（ID: YOUR_CHANNEL_ID）
 
 ## 三种消息类型
@@ -106,14 +106,13 @@ GROUP BY m.name
 
 ## 发送方式
 
-使用 Discord MCP 工具：
+所有 Discord 发送均通过 REST API 直连（不依赖 MCP）。脚本内部用 `send_discord.py`：
 
 ```
-discord_send_message(
-  target = "YOUR_SERVER/YOUR_CHANNEL",
-  message = {组装好的消息}
-)
+python3 .agents/sched/send_discord.py <message_file> <channel_id>
 ```
+
+Token 从 macOS Keychain 读取（`discord-bot-token` / `opencode`），消息超 2000 字符自动分片，429 自动重试。
 
 ## 消息规范
 
@@ -159,13 +158,14 @@ python3 .agents/sched/workout_summary.py
 
 ### send_discord.py
 
-底层发送工具，支持命令行调用。
+底层发送工具（REST API 直连，非 MCP），支持命令行调用。
 
 ```bash
-echo "消息内容" | python3 .agents/sched/send_discord.py "YOUR_SERVER/YOUR_CHANNEL"
+python3 .agents/sched/send_discord.py <message_file> <channel_id>
 ```
 
 **Token 来源**：macOS Keychain（`discord-bot-token` / `opencode`）
+**消息分片**：超 2000 字符自动拆分，429 自动重试。
 
 ### workout_preview.sh
 

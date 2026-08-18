@@ -22,10 +22,9 @@ def _discord_cfg() -> dict:
                     cfg[k.strip()] = v.strip().strip('"')
             break
     return cfg
-DISCORD_PYTHON = "/Users/theoyuan/.local/share/discord-mcp/venv/bin/python"
 
 TODAY = date.today().isoformat()
-TARGET = _discord_cfg().get("DISCORD_WORKOUT_TARGET", "")
+CHANNEL_ID = _discord_cfg().get("DISCORD_WORKOUT_CHANNEL_ID", "")
 
 
 def query_date(date_str: str) -> list:
@@ -137,11 +136,19 @@ def generate_summary(data: list) -> str | None:
     return "\n".join(lines)
 
 
-def send_discord(message: str, target: str = TARGET):
-    result = subprocess.run(
-        [DISCORD_PYTHON, ".agents/sched/send_discord.py", target],
-        input=message, capture_output=True, text=True
-    )
+def send_discord(message: str, channel_id: str = CHANNEL_ID):
+    import os
+    import tempfile
+    fd, path = tempfile.mkstemp(suffix=".txt")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(message)
+        result = subprocess.run(
+            [sys.executable, ".agents/sched/send_discord.py", path, channel_id],
+            capture_output=True, text=True
+        )
+    finally:
+        os.unlink(path)
     print(result.stdout.strip())
     if result.stderr:
         print(result.stderr.strip(), file=sys.stderr)

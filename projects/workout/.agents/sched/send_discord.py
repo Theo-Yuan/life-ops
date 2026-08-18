@@ -1,104 +1,96 @@
 #!/usr/bin/env python3
-import sys
+"""Send a message file/stream to a Discord channel via REST API.
+
+Usage:
+    python3 send_discord.py <message_file> <channel_id>
+    echo "text" | python3 send_discord.py - <channel_id>
+
+Token comes from macOS Keychain (discord-bot-token / opencode).
+Chunks long messages (Discord 2000-char limit), retries transient errors.
+REST-only: no discord.py gateway, no MCP.
+"""
+import http.client
+import json
 import subprocess
-import asyncio
-import discord
+import sys
+import time
+
+HOST = "discord.com"
+TOKEN = subprocess.check_output(
+    ["security", "find-generic-password", "-s", "discord-bot-token", "-a", "opencode", "-w"]
+).decode().strip()
+
+CHUNK_LIMIT = 1900
 
 
+def api(path: str, method: str = "GET", body: dict | None = None):
+    headers = {"Authorization": f"Bot {TOKEN}", "Content-Type": "application/json"}
+    payload = json.dumps(body).encode() if body is not None else None
+    last_err = None
+    for attempt in range(3):
+        conn = None
+        try:
+            conn = http.client.HTTPSConnection(HOST, timeout=20)
+            conn.request(method, path, body=payload, headers=headers)
+            resp = conn.getresponse()
+            raw = resp.read().decode(errors="replace")
+            if resp.status >= 400:
+                sys.stderr.write(f"HTTP {resp.status} {path}: {raw}\n")
+                if resp.status == 429:
+                    retry_after = resp.getheader("Retry-After", "1")
+                    time.sleep(float(retry_after))
+                    continue
+                raise RuntimeError(f"discord api error {resp.status}")
+            return json.loads(raw) if raw else {}
+        except (http.client.RemoteDisconnected,
+                TimeoutError,
+                ConnectionError,
+                OSError) as e:
+            last_err = e
+            sys.stderr.write(f"discord connection error (attempt {attempt + 1}/3): {e}\n")
+            time.sleep(2 ** attempt)
+        finally:
+            if conn:
+                conn.close()
+    raise last_err
 
 
-def _discord_cfg() -> dict:
-    from pathlib import Path as _P
-    cfg = {}
-    p = _P(__file__).resolve()
-    for parent in [p, *p.parents]:
-        f = parent / ".agents" / "discord.config"
-        if f.exists():
-            for ln in f.read_text().splitlines():
-                ln = ln.strip()
-                if ln and not ln.startswith("#") and "=" in ln:
-                    k, _, v = ln.partition("=")
-                    cfg[k.strip()] = v.strip().strip('"')
-            break
-    return cfg
-def get_token() -> str:
-    """Read Discord bot token from macOS Keychain."""
-    try:
-        result = subprocess.run(
-            ["security", "find-generic-password", "-s", "discord-bot-token",
-             "-a", "opencode", "-w"],
-            capture_output=True, text=True, check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        print("ERROR: Discord bot token not found in Keychain.", file=sys.stderr)
-        sys.exit(1)
-
-
-async def send_message(token: str, target: str, message: str) -> str:
-    """Send a message to a Discord channel."""
-    intents = discord.Intents.default()
-    intents.message_content = True
-
-    class SendBot(discord.Client):
-        async def on_ready(self):
-            # Parse "ServerName/channel" format
-            parts = target.split("/", 1)
-            if len(parts) == 2:
-                server_name, channel_name = parts
-                server_name = server_name.strip()
-                channel_name = channel_name.strip()
-                guild = discord.utils.find(
-                    lambda g: g.name.lower() == server_name.lower(),
-                    self.guilds
-                )
-                if not guild:
-                    print(f"ERROR: Server '{server_name}' not found.", file=sys.stderr)
-                    await self.close()
-                    return
-                channel = discord.utils.find(
-                    lambda c: isinstance(c, discord.TextChannel)
-                    and c.name.lower() == channel_name.lower(),
-                    guild.channels
-                )
-                if not channel:
-                    print(f"ERROR: Channel '{channel_name}' not found in '{server_name}'.",
-                          file=sys.stderr)
-                    await self.close()
-                    return
-                sent = await channel.send(message)
-                print(f"Sent to #{channel.name} in {guild.name}")
-            else:
-                # Try as channel name across all guilds
-                channel_name = parts[0].strip()
-                channel = discord.utils.find(
-                    lambda c: isinstance(c, discord.TextChannel)
-                    and c.name.lower() == channel_name.lower(),
-                    self.get_all_channels()
-                )
-                if not channel:
-                    print(f"ERROR: Channel '{channel_name}' not found.", file=sys.stderr)
-                    await self.close()
-                    return
-                sent = await channel.send(message)
-                print(f"Sent to #{channel.name} in {channel.guild.name}")
-
-            await self.close()
-
-    bot = SendBot(intents=intents)
-    await bot.start(token)
+def split_chunks(msg: str) -> list[str]:
+    lines = msg.splitlines()
+    chunks, cur = [], ""
+    for ln in lines:
+        if cur and len(cur) + len(ln) + 1 > CHUNK_LIMIT:
+            chunks.append(cur)
+            cur = ln
+        else:
+            cur = f"{cur}\n{ln}" if cur else ln
+    if cur:
+        chunks.append(cur)
+    return chunks
 
 
 def main():
-    target = sys.argv[1] if len(sys.argv) > 1 else _discord_cfg().get("DISCORD_WORKOUT_TARGET", "")
-    message = sys.stdin.read().strip()
-    if not message:
-        print("ERROR: No message provided on stdin.", file=sys.stderr)
-        sys.exit(1)
+    if len(sys.argv) < 3:
+        sys.stderr.write("usage: send_discord.py <message_file|'-'> <channel_id>\n")
+        return 1
+    msg_path, channel_id = sys.argv[1], sys.argv[2]
+    if msg_path == "-":
+        msg = sys.stdin.read().strip()
+    else:
+        with open(msg_path, encoding="utf-8") as f:
+            msg = f.read().strip()
+    if not msg:
+        sys.stderr.write("empty message\n")
+        return 1
 
-    token = get_token()
-    asyncio.run(send_message(token, target, message))
+    chunks = split_chunks(msg)
+    for i, chunk in enumerate(chunks):
+        api(f"/api/v10/channels/{channel_id}/messages", "POST", {"content": chunk})
+        if i < len(chunks) - 1:
+            time.sleep(0.4)
+    print(f"sent {len(chunks)} message(s) to channel {channel_id}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

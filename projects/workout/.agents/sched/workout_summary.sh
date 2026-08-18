@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eumo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -8,6 +8,9 @@ source "$MONOREPO_ROOT/.agents/discord.config" 2>/dev/null || true
 cd "$PROJECT_DIR"
 
 TODAY=$(date +%Y-%m-%d)
+DIGEST="$SCRIPT_DIR/.summary-$TODAY.txt"
+PROMPT_FILE=$(mktemp /tmp/workout-summary-prompt-$$-XXXXXX.txt)
+trap 'rm -f "$PROMPT_FILE" "$DIGEST"' EXIT
 
 # 获取今日训练数据 + 最近同类对比 + profile（供 agent 生成个性化摘要）
 SUMMARY_JSON=$(python3 .agents/sched/workout_summary.py --data 2>/dev/null)
@@ -44,11 +47,8 @@ for r in d.get('recent_same_type', []):
     print(f\"  {r['datestr']}  {r['title']}  {r['duration_min']}min  {moves}\")
 ")
 
-PROMPT_FILE=$(mktemp /tmp/workout-summary-prompt-$$-XXXXXX.txt)
-trap "rm -f $PROMPT_FILE" EXIT
-
 cat > "$PROMPT_FILE" <<'PROMPT_EOF'
-你是训记训练助手。请根据今日训练数据，生成个性化的训练完成摘要并发送到 Discord。
+你是训记训练助手。请根据今日训练数据，生成个性化的训练完成摘要并**写入文件**（不要发送）。
 
 ## 今日训练
 TRAIN_PLACEHOLDER
@@ -58,8 +58,9 @@ RECENT_PLACEHOLDER
 
 ## 你的任务
 1. 读取 projects/workout/.agents/profile.md 了解用户偏好、当前阶段（减载周等）
-2. 生成训练完成摘要，发送到 target="__DC_TARGET__"
+2. 生成训练完成摘要
 3. 结合 profile 和同类历史给出个性化点评（如进步/持平/退步、是否达标、建议）
+4. 把最终消息完整写入文件：__DIGEST_PATH__（只写纯文本，不要加代码块标记）
 
 ## 消息格式（严格遵循）
 - 用中文，简洁有力
@@ -85,7 +86,7 @@ RECENT_PLACEHOLDER
 ## 约束
 - 数据以脚本提供的为准，不要编造
 - 减载周务必提醒「不要力竭」
-- 发送完成后必须输出 Done（只输出一次）
+- **不要调用任何 MCP 工具（尤其是 discord），只做读取、生成摘要、写文件**
 PROMPT_EOF
 
 TMP_PROMPT2=$(mktemp /tmp/workout-summary-prompt2-$$-XXXXXX.txt)
@@ -99,12 +100,13 @@ while IFS= read -r line; do
     fi
 done < "$PROMPT_FILE"
 mv "$TMP_PROMPT2" "$PROMPT_FILE"
-sed -i '' "s|__DC_TARGET__|$DISCORD_WORKOUT_TARGET|g" "$PROMPT_FILE"
+sed -i '' "s|__DIGEST_PATH__|$DIGEST|g" "$PROMPT_FILE"
 
-MAX_ATTEMPTS=3
-TIMEOUT_SEC=90
+MAX_ATTEMPTS=2
+TIMEOUT_SEC=300
 RETRY_DELAY=10
 
+OP_EXIT_CODE=1
 for attempt in $(seq 1 $MAX_ATTEMPTS); do
     echo "[$(date '+%H:%M:%S')] Attempt $attempt/$MAX_ATTEMPTS: launching opencode..." >&2
 
@@ -120,29 +122,35 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
     while [ $elapsed -lt $TIMEOUT_SEC ]; do
         if ! kill -0 $OP_PID 2>/dev/null; then
             wait $OP_PID
-            EXIT_CODE=$?
-            if [ $EXIT_CODE -eq 0 ]; then
-                echo "[$(date '+%H:%M:%S')] ✓ opencode success (attempt $attempt)" >&2
-                exit 0
-            fi
-            echo "[$(date '+%H:%M:%S')] ✗ opencode exit=$EXIT_CODE (attempt $attempt)" >&2
-            break
+            OP_EXIT_CODE=$?
+            break 2
         fi
-        sleep 1
-        elapsed=$((elapsed + 1))
+        sleep 2
+        elapsed=$((elapsed + 2))
     done
 
     if kill -0 $OP_PID 2>/dev/null; then
         echo "[$(date '+%H:%M:%S')] ✗ opencode timeout after ${TIMEOUT_SEC}s (attempt $attempt)" >&2
-        kill $OP_PID 2>/dev/null
+        kill -TERM -$OP_PID 2>/dev/null || kill -TERM $OP_PID 2>/dev/null || true
+        sleep 2
+        kill -KILL -$OP_PID 2>/dev/null || kill -KILL $OP_PID 2>/dev/null || true
         wait $OP_PID 2>/dev/null || true
     fi
 
-    if [ $attempt -lt $MAX_ATTEMPTS ]; then
-        echo "[$(date '+%H:%M:%S')] Retrying in ${RETRY_DELAY}s..." >&2
-        sleep $RETRY_DELAY
-    fi
+    [ $attempt -lt $MAX_ATTEMPTS ] && sleep $RETRY_DELAY
 done
 
-echo "[$(date '+%H:%M:%S')] FATAL: All $MAX_ATTEMPTS attempts failed" >&2
-exit 1
+if [ "$OP_EXIT_CODE" -ne 0 ]; then
+    echo "FATAL: opencode failed after $MAX_ATTEMPTS attempts (exit=$OP_EXIT_CODE)" >&2
+    exit 1
+fi
+
+if [ -s "$DIGEST" ]; then
+    python3 "$SCRIPT_DIR/send_discord.py" "$DIGEST" "$DISCORD_WORKOUT_CHANNEL_ID" \
+        || { echo "FATAL: send failed" >&2; exit 1; }
+else
+    echo "FATAL: digest file is empty" >&2
+    exit 1
+fi
+
+echo "Success"
