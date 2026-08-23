@@ -157,8 +157,8 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
     elapsed=0
     while [ $elapsed -lt $TIMEOUT_SEC ]; do
         if ! kill -0 $OP_PID 2>/dev/null; then
-            wait $OP_PID
-            EXIT_CODE=$?
+            EXIT_CODE=0
+            wait $OP_PID || EXIT_CODE=$?
             if [ $EXIT_CODE -eq 0 ]; then
                 echo "[$(date '+%H:%M:%S')] ✓ opencode success (attempt $attempt)" >&2
                 exit 0

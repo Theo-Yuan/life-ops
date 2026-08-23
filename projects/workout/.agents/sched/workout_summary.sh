@@ -121,8 +121,8 @@ for attempt in $(seq 1 $MAX_ATTEMPTS); do
     elapsed=0
     while [ $elapsed -lt $TIMEOUT_SEC ]; do
         if ! kill -0 $OP_PID 2>/dev/null; then
-            wait $OP_PID
-            OP_EXIT_CODE=$?
+            OP_EXIT_CODE=0
+            wait $OP_PID || OP_EXIT_CODE=$?
             break 2
         fi
         sleep 2
