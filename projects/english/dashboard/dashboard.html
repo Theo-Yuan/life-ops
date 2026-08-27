@@ -45,6 +45,10 @@
       <div class="chart-box"><canvas id="activityPie"></canvas></div>
     </div>
     <div class="card full">
+      <h2>Study Stats</h2>
+      <div class="stat-cards" id="studyStats"></div>
+    </div>
+    <div class="card full">
       <h2>Dictation Stats</h2>
       <div class="stat-cards" id="dictStats"></div>
     </div>
@@ -79,6 +83,16 @@ function render(m) {
     data: { labels, datasets: [{ data: minutes, backgroundColor: ["#0984e3", "#00b894", "#e17055", "#fdcb6e", "#6c5ce7"] }] },
     options: { responsive: true, maintainAspectRatio: false }
   });
+
+  const s = m.study_log;
+  const studyStats = [
+    ["Study Streak", s.streak_days],
+    ["Distinct Days", s.distinct_days],
+    ["Total Minutes", s.total_minutes]
+  ];
+  document.getElementById("studyStats").innerHTML = studyStats.map(([l, v]) =>
+    `<div class="stat"><div class="value">${v}</div><div class="label">${l}</div></div>`
+  ).join("");
 
   const d = m.dictation;
   const stats = [

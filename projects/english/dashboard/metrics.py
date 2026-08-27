@@ -12,7 +12,7 @@ import glob
 import json
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 DB_REL = os.path.join(".agents", "db", "english_learning.db")
 DICT_REL = os.path.join("tmp", "daily-dictation", "*.json")
@@ -30,6 +30,7 @@ def load_study_log(data_dir):
 
     total_minutes = sum(r[1] for r in rows)
     distinct_days = len({r[0] for r in rows})
+    streak_days = compute_streak_days({r[0] for r in rows})
     by_activity = {}
     for _date, minutes, activity in rows:
         agg = by_activity.setdefault(activity, {"count": 0, "minutes": 0})
@@ -40,8 +41,23 @@ def load_study_log(data_dir):
         "rows": len(rows),
         "total_minutes": total_minutes,
         "distinct_days": distinct_days,
+        "streak_days": streak_days,
         "by_activity": by_activity,
     }
+
+
+def compute_streak_days(dates):
+    """Length of the longest run of consecutive calendar days ending at the max date."""
+    if not dates:
+        return 0
+    ordered = sorted(date.fromisoformat(d) for d in dates)
+    streak = 1
+    for prev, cur in zip(ordered, ordered[1:]):
+        if (cur - prev).days == 1:
+            streak += 1
+        else:
+            streak = 1
+    return streak
 
 
 def load_dictation(data_dir):
