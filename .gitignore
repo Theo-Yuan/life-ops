@@ -21,3 +21,6 @@ deploy/
 .agents/discord.config
 projects/workout/.ngrok/
 projects/article/.agents/sched/digest_config
+
+# Generated english dashboard metrics (regenerable via metrics.py)
+projects/english/dashboard/metrics.json
