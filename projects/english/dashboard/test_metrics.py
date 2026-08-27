@@ -14,6 +14,7 @@ import json
 import os
 import sqlite3
 import sys
+from datetime import date
 
 DB_REL = os.path.join(".agents", "db", "english_learning.db")
 DICT_REL = os.path.join("tmp", "daily-dictation", "*.json")
@@ -31,6 +32,7 @@ def recompute_study_log(data_dir):
 
     total_minutes = sum(r[1] for r in rows)
     distinct_days = len({r[0] for r in rows})
+    streak_days = recompute_streak_days({r[0] for r in rows})
     by_activity = {}
     for _date, minutes, activity in rows:
         agg = by_activity.setdefault(activity, {"count": 0, "minutes": 0})
@@ -41,8 +43,22 @@ def recompute_study_log(data_dir):
         "rows": len(rows),
         "total_minutes": total_minutes,
         "distinct_days": distinct_days,
+        "streak_days": streak_days,
         "by_activity": by_activity,
     }
+
+
+def recompute_streak_days(dates):
+    if not dates:
+        return 0
+    ordered = sorted(date.fromisoformat(d) for d in dates)
+    streak = 1
+    for prev, cur in zip(ordered, ordered[1:]):
+        if (cur - prev).days == 1:
+            streak += 1
+        else:
+            streak = 1
+    return streak
 
 
 def recompute_dictation(data_dir):
@@ -132,6 +148,19 @@ def main():
         failures.append(
             f"study_log.distinct_days {sl.get('distinct_days')} != "
             f"{expected_study['distinct_days']}"
+        )
+    sd = sl.get("streak_days")
+    if not isinstance(sd, int) or sd <= 0:
+        failures.append(f"study_log.streak_days {sd} not a positive int")
+    elif sd > expected_study["distinct_days"]:
+        failures.append(
+            f"study_log.streak_days {sd} > distinct_days "
+            f"{expected_study['distinct_days']}"
+        )
+    elif sd != expected_study["streak_days"]:
+        failures.append(
+            f"study_log.streak_days {sd} != brute-force "
+            f"{expected_study['streak_days']}"
         )
     if sl.get("by_activity") != expected_study["by_activity"]:
         failures.append("study_log.by_activity mismatch")
