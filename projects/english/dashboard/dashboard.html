@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Learning Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f5f6fa; color: #2d3436; }
+  header { background: #2d3436; color: #fff; padding: 20px 32px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: #b2bec3; font-size: 13px; }
+  main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .card h2 { margin: 0 0 16px; font-size: 16px; color: #636e72; }
+  .card.full { grid-column: 1 / -1; }
+  .chart-box { position: relative; height: 300px; }
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stat { background: #fafafa; border-radius: 8px; padding: 14px; text-align: center; }
+  .stat .value { font-size: 26px; font-weight: 700; color: #0984e3; }
+  .stat .label { font-size: 12px; color: #636e72; margin-top: 4px; }
+  ul.lessons { list-style: none; margin: 0; padding: 0; }
+  ul.lessons li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+  ul.lessons li:last-child { border-bottom: none; }
+  .lessons .cat { color: #0984e3; font-size: 12px; margin-right: 8px; }
+  .lessons .comp { color: #636e72; font-size: 12px; }
+  #error { color: #d63031; padding: 20px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>English Learning Dashboard</h1>
+  <p id="generated"></p>
+</header>
+<main>
+  <div id="error" style="display:none;">Failed to load metrics.json</div>
+  <div class="grid">
+    <div class="card">
+      <h2>Study Minutes by Activity</h2>
+      <div class="chart-box"><canvas id="activityBar"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Activity Share</h2>
+      <div class="chart-box"><canvas id="activityPie"></canvas></div>
+    </div>
+    <div class="card full">
+      <h2>Dictation Stats</h2>
+      <div class="stat-cards" id="dictStats"></div>
+    </div>
+    <div class="card full">
+      <h2>Recent Lessons</h2>
+      <ul class="lessons" id="lessons"></ul>
+    </div>
+  </div>
+</main>
+<script>
+fetch("metrics.json")
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(render)
+  .catch(() => { document.getElementById("error").style.display = "block"; });
+
+function render(m) {
+  document.getElementById("generated").textContent = "Generated " + new Date(m.generated_at).toLocaleString();
+
+  const byAct = m.study_log.by_activity || {};
+  const labels = Object.keys(byAct);
+  const minutes = labels.map(k => byAct[k].minutes);
+  const counts = labels.map(k => byAct[k].count);
+
+  new Chart(document.getElementById("activityBar"), {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Minutes", data: minutes, backgroundColor: "#0984e3" }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  new Chart(document.getElementById("activityPie"), {
+    type: "pie",
+    data: { labels, datasets: [{ data: minutes, backgroundColor: ["#0984e3", "#00b894", "#e17055", "#fdcb6e", "#6c5ce7"] }] },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  const d = m.dictation;
+  const stats = [
+    ["Active Days", d.max_active_days],
+    ["Sum Active Hours", d.sum_active_time_hours],
+    ["Last 7d Hours", d.max_last_7d_hours],
+    ["Last 30d Hours", d.max_last_30d_hours],
+    ["Lesson Completions", d.sum_lesson_completions],
+    ["Files", d.file_count]
+  ];
+  document.getElementById("dictStats").innerHTML = stats.map(([l, v]) =>
+    `<div class="stat"><div class="value">${v}</div><div class="label">${l}</div></div>`
+  ).join("");
+
+  document.getElementById("lessons").innerHTML = (d.recent_lessons || []).map(l =>
+    `<li><span><span class="cat">${l.category}</span>${l.title}</span><span class="comp">${l.completions}×</span></li>`
+  ).join("") || "<li>No lessons</li>";
+}
+</script>
+</body>
+</html>
