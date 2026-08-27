@@ -32,6 +32,7 @@ def recompute_study_log(data_dir):
 
     total_minutes = sum(r[1] for r in rows)
     distinct_days = len({r[0] for r in rows})
+    latest_date = max((r[0] for r in rows), default=None)
     streak_days = recompute_streak_days({r[0] for r in rows})
     by_activity = {}
     for _date, minutes, activity in rows:
@@ -43,6 +44,7 @@ def recompute_study_log(data_dir):
         "rows": len(rows),
         "total_minutes": total_minutes,
         "distinct_days": distinct_days,
+        "latest_date": latest_date,
         "streak_days": streak_days,
         "by_activity": by_activity,
     }
@@ -149,6 +151,11 @@ def main():
             f"study_log.distinct_days {sl.get('distinct_days')} != "
             f"{expected_study['distinct_days']}"
         )
+    if sl.get("latest_date") != expected_study["latest_date"]:
+        failures.append(
+            f"study_log.latest_date {sl.get('latest_date')} != "
+            f"DB max {expected_study['latest_date']}"
+        )
     sd = sl.get("streak_days")
     if not isinstance(sd, int) or sd <= 0:
         failures.append(f"study_log.streak_days {sd} not a positive int")
@@ -185,6 +192,8 @@ def main():
         failures.append(f"study_log.rows {sl.get('rows')} < 100")
     if sl.get("total_minutes", 0) <= 0:
         failures.append("study_log.total_minutes not > 0")
+    if not sl.get("latest_date"):
+        failures.append("study_log.latest_date is empty")
     if not sl.get("by_activity"):
         failures.append("study_log.by_activity is empty")
     if dc.get("file_count") != 30:

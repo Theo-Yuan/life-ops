@@ -30,6 +30,7 @@ def load_study_log(data_dir):
 
     total_minutes = sum(r[1] for r in rows)
     distinct_days = len({r[0] for r in rows})
+    latest_date = max((r[0] for r in rows), default=None)
     streak_days = compute_streak_days({r[0] for r in rows})
     by_activity = {}
     for _date, minutes, activity in rows:
@@ -41,6 +42,7 @@ def load_study_log(data_dir):
         "rows": len(rows),
         "total_minutes": total_minutes,
         "distinct_days": distinct_days,
+        "latest_date": latest_date,
         "streak_days": streak_days,
         "by_activity": by_activity,
     }
