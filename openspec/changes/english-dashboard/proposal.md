@@ -22,10 +22,8 @@ life-ops english learning data:
 
 ## Acceptance commands
 
-```
-python3 projects/english/dashboard/metrics.py --data /Users/theoyuan/projects/personal/life-ops/projects/english
-python3 projects/english/dashboard/test_metrics.py --data /Users/theoyuan/projects/personal/life-ops/projects/english
-```
+- python3 projects/english/dashboard/metrics.py --data /Users/theoyuan/projects/personal/life-ops/projects/english
+- python3 projects/english/dashboard/test_metrics.py --data /Users/theoyuan/projects/personal/life-ops/projects/english
 
 ## Acceptance test paths
 
