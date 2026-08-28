@@ -25,19 +25,19 @@ life-ops/
 
 ```bash
 # 聚合日报 → Discord 私信
-make report
+just report
 
 # 定时任务巡检（最近 3 天）
-make health
+just health
 
 # 审计快照历史
-make audit
+just audit
 
 # 学习记录（指定 DB）
-make study-log DB=projects/english/.agents/db/english_learning.db ARGS=week
+just study-log db=projects/english/.agents/db/english_learning.db args=week
 
 # 本地语法检查（与 CI 一致）
-make check
+just check
 ```
 
 ## 知识库（GitHub Pages）
@@ -54,7 +54,9 @@ make check
 | gmail-summary | 08:03 | `projects/gmail/sched/email-summary.sh` |
 | life-ops-report | 23:35 | `ops/report.sh` |
 | task-health-check | 08:40 | `ops/task_health.sh` |
-| daily-article-digest | 07:30 | `projects/article/.agents/sched/daily_digest.sh` |
+| ~~daily-article-digest~~（暂停） | 07:30 | `projects/article/.agents/sched/daily_digest.sh` |
+
+> 每日新闻（文章日报）已通过 `reveille disable` 暂停（未删除，可随时 `reveille enable 0ZjOzEGM` 恢复）。聚合日报 `ops/report.sh` 汇总 workout + english + gmail。
 
 ## 约定
 

@@ -108,6 +108,9 @@ def main():
     tasks = []
     for task_file in sorted(TASKS_DIR.glob("*.md")):
         task = _parse_task(task_file)
+        # 跳过已暂停的任务（enabled: false），避免误报「无执行记录」
+        if task.get("enabled") == "false":
+            continue
         execs = _read_execs(task["id"])
         recent = [e for e in execs if e.get("startedAt", "")[:10] >= cutoff]
 

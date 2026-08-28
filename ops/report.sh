@@ -41,20 +41,6 @@ if w:
     print(f\"  近7天: {total}min\")
 ")
 
-FINANCE_LINES=$(printf '%s' "$REPORT_JSON" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)['finance_plan']
-t = d.get('today')
-if t:
-    print(f\"  今日理财学习: {t['minutes']}min ({t['entries']}条)\")
-else:
-    print(f\"  今日理财学习: 无\")
-w = d.get('week', [])
-if w:
-    total = sum((r['minutes'] or 0) for r in w)
-    print(f\"  近7天: {total}min\")
-")
-
 GMAIL_LINES=$(printf '%s' "$REPORT_JSON" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)['gmail']
@@ -94,7 +80,6 @@ cat > "$PROMPT_FILE" <<'PROMPT_EOF'
 ## 今日聚合数据
 WORKOUT_PLACEHOLDER
 ENGLISH_PLACEHOLDER
-FINANCE_PLACEHOLDER
 GMAIL_PLACEHOLDER
 TASK_PLACEHOLDER
 
@@ -102,9 +87,9 @@ TASK_PLACEHOLDER
 1. 读取各项目的 profile（如需要个性化点评）：
    - projects/workout/.agents/profile.md
    - projects/english/.agents/profile.md
-   - projects/finance/.agents/profile.md
 2. 生成一份聚合日报，包含：
-   - 训练 / 听写 / 理财学习 今日状态 + 简短点评（进步/持平/退步）
+   - 训练 / 听写 今日状态 + 简短点评（进步/持平/退步）
+   - 邮件摘要（今日邮件概况 + 重要未读）
    - 定时任务执行报告（哪些任务跑了、成功/失败、异常提醒）
 3. 发送到 target="__DC_TARGET__"（Discord 私信）
 4. 发送完成后输出 Done
@@ -126,8 +111,6 @@ while IFS= read -r line; do
         echo "$WORKOUT_LINES" >> "$TMP_PROMPT2"
     elif [[ "$line" == "ENGLISH_PLACEHOLDER" ]]; then
         echo "$ENGLISH_LINES" >> "$TMP_PROMPT2"
-    elif [[ "$line" == "FINANCE_PLACEHOLDER" ]]; then
-        echo "$FINANCE_LINES" >> "$TMP_PROMPT2"
     elif [[ "$line" == "GMAIL_PLACEHOLDER" ]]; then
         echo "$GMAIL_LINES" >> "$TMP_PROMPT2"
     elif [[ "$line" == "TASK_PLACEHOLDER" ]]; then

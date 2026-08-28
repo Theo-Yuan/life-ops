@@ -5,8 +5,9 @@ Daily Life Ops Report — 聚合各学习项目数据 + 定时任务执行状态
 数据源:
   projects/workout   .agents/db/train.db        (训练记录)
   projects/english .agents/db/english_learning.db + tmp/daily-dictation/ (学习记录+听写)
-  projects/finance   .agents/db/finance_plan.db (理财学习记录)
   reveille       ~/.config/reveille/executions/*.json (定时任务执行状态)
+
+注：finance / article 摘要已暂停（见 README）；gmail 摘要已恢复。
 
 用法:
     python3 scripts/aggregate.py            # 输出今日报告 JSON (stdout)
@@ -26,7 +27,6 @@ TASK_NAMES = {
     "CF8hidn2": "训练预告 workout-preview",
     "vbObtAvS": "听写打卡 daily-dictation",
     "HSClwEzd": "邮件摘要 gmail-summary",
-    "0ZjOzEGM": "文章日报 daily-article-digest",
     "BB9Lv5p2": "聚合日报 life-ops-report",
     "sEzf-0i3": "任务巡检 task-health-check",
 }
@@ -119,27 +119,6 @@ def _english(today: str):
     }
 
 
-def _finance(today: str):
-    db = PROJECTS / "finance" / ".agents" / "db" / "finance_plan.db"
-    if not db.exists():
-        return {"error": "finance_plan.db not found"}
-    conn = _db(db)
-    today_rows = conn.execute(
-        "SELECT date, SUM(duration_min) AS minutes, COUNT(*) AS entries "
-        "FROM study_log WHERE date = ? GROUP BY date", (today,)
-    ).fetchall()
-    week_rows = conn.execute(
-        "SELECT date, SUM(duration_min) AS minutes, activity FROM study_log "
-        "WHERE date >= ? ORDER BY date",
-        ((date.today() - timedelta(days=7)).isoformat(),),
-    ).fetchall()
-    conn.close()
-    return {
-        "today": dict(today_rows[0]) if today_rows else None,
-        "week": [dict(r) for r in week_rows],
-    }
-
-
 def _gmail(today: str):
     summary = PROJECTS / "gmail" / "tmp" / "emails.json"
     if not summary.exists():
@@ -179,7 +158,7 @@ def _tasks(days: int):
                     "exit_code": e.get("exitCode"),
                     "duration_s": None,
                 })
-    return [{"task": name, "runs": runs} for name, runs in results.items()]
+    return [{"task": TASK_NAMES[tid], "runs": runs} for tid, runs in results.items()]
 
 
 def main():
@@ -193,7 +172,6 @@ def main():
         "date": today,
         "workout": _workout(today),
         "english_learning": _english(today),
-        "finance_plan": _finance(today),
         "gmail": _gmail(today),
         "tasks": _tasks(args.days),
         "note": "数据以脚本读取为准，不要编造。结合各项目目标给个性化点评。",
