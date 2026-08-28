@@ -1,33 +1,21 @@
-const { google } = require('googleapis');
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
+// migrate-labels.cjs — 用 gog CLI 迁移旧标签 → 新标签（线程级），并删除旧标签。
+const gog = require('./lib/gog.cjs');
 
-const CREDENTIALS_PATH = process.env.GMAIL_CREDENTIALS_PATH || 
-  path.join(process.env.HOME, '.gmail-mcp', 'credentials.json');
-const OAUTH_PATH = process.env.GMAIL_OAUTH_PATH || 
-  path.join(process.env.HOME, '.gmail-mcp', 'gcp-oauth.keys.json');
-
-/** Old label → New label mapping. null = delete only (no migration). */
 const MIGRATIONS = {
-  // Social
   'linkedin': 'Social/LinkedIn',
   'twitch': 'Social/Twitch',
   'facebook': 'Social/Facebook',
   'feed/netflix': 'Social/Netflix',
   'feed': 'Social',
-  // News
   'News': 'Newsletters/News',
-  // Dev
   'mongodb': 'Dev/Database',
   'deeplearning.ai': 'Dev/AI',
   'AI': 'Dev/AI',
   'Real Python': 'Dev/Python',
-  // Travel
   'tour/japan': 'Travel/Japan',
   'tour': 'Travel',
-  // Finance
   'receipt': 'Finance/Receipt',
-  // Other
   'advertisement': 'Ads',
   'google': 'Newsletters',
   'zoom': null,
@@ -36,112 +24,89 @@ const MIGRATIONS = {
   'Notes': null,
 };
 
-async function getAuth() {
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const oauthKeys = JSON.parse(fs.readFileSync(OAUTH_PATH, 'utf8'));
-  const { client_id, client_secret } = oauthKeys.installed || oauthKeys.web;
-  const auth = new google.auth.OAuth2(client_id, client_secret);
-  auth.setCredentials(credentials);
-  return auth;
+function labelQuery(name) {
+  return `label:"${name.replace(/"/g, '\\"')}"`;
 }
 
-async function getAllMessageIds(gmail, labelId) {
-  const ids = [];
-  let pageToken = null;
-  while (true) {
-    try {
-      const res = await gmail.users.messages.list({
-        userId: 'me', labelIds: [labelId], maxResults: 500,
-        pageToken: pageToken || undefined,
-      });
-      const messages = res.data.messages || [];
-      ids.push(...messages.map(m => m.id));
-      pageToken = res.data.nextPageToken;
-      if (!pageToken) break;
-      await new Promise(r => setTimeout(r, 200));
-    } catch (e) {
-      if (e.code === 429) { await new Promise(r => setTimeout(r, 3000)); continue; }
-      console.error(`  List error: ${e.message}`);
-      break;
-    }
-  }
-  return ids;
-}
+function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  console.log(`${dryRun ? '🔍 DRY RUN (preview only)' : '🚀 MIGRATE MODE'}\n`);
 
-async function main() {
-  const auth = await getAuth();
-  const gmail = google.gmail({ version: 'v1', auth });
-
-  const labelsRes = await gmail.users.labels.list({ userId: 'me' });
-  const labels = labelsRes.data.labels || [];
-  const labelMap = {};
-  for (const l of labels) labelMap[l.name] = l.id;
-  
-  // Also build reverse: id → name
-  const idToName = {};
-  for (const l of labels) idToName[l.id] = l.name;
-
-  console.log('📋 Old label migration plan:\n');
+  const labelsRes = gog(['gmail', 'labels', 'list', '--json', '--readonly', '--no-input']);
+  const labels = (labelsRes && labelsRes.labels) || [];
+  const existing = new Set(labels.map((l) => l.name));
 
   const entries = Object.entries(MIGRATIONS);
   for (let i = 0; i < entries.length; i++) {
     const [oldName, newName] = entries[i];
-    const oldId = labelMap[oldName];
-    const newId = newName ? labelMap[newName] : null;
-
-    if (!oldId) {
+    if (!existing.has(oldName)) {
       console.log(`[${i + 1}/${entries.length}] ⚪ ${oldName} — label not found, skipping`);
       continue;
     }
 
-    // Get email count
-    const labelInfo = await gmail.users.labels.get({ userId: 'me', id: oldId });
-    const count = labelInfo.data.messagesTotal || 0;
-
-    if (newId && count > 0) {
-      console.log(`[${i + 1}/${entries.length}] 🔄 ${oldName} → ${newName} (${count} emails)`);
-      
-      const ids = await getAllMessageIds(gmail, oldId);
-      if (ids.length === 0) { console.log(`  ⚪ No emails to migrate`); }
-      
-      // Batch add new label in chunks of 500
-      for (let j = 0; j < ids.length; j += 500) {
-        const batch = ids.slice(j, j + 500);
-        try {
-          await gmail.users.messages.batchModify({
-            userId: 'me',
-            requestBody: { ids: batch, addLabelIds: [newId] },
-          });
-        } catch (e) {
-          if (e.code === 429 || (e.errors && e.errors[0]?.reason === 'rateLimitExceeded')) {
-            console.log(`  Rate limited, retrying...`);
-            await new Promise(r => setTimeout(r, 2000));
-            j -= 500;
-            continue;
-          }
-          console.error(`  Batch error: ${e.message}`);
-        }
-        await new Promise(r => setTimeout(r, 200));
-      }
-      console.log(`  ✅ Migrated ${ids.length} to ${newName}`);
-    } else if (!newId) {
-      console.log(`[${i + 1}/${entries.length}] ℹ️  ${oldName} (${count} emails) — keep/delete manually`);
-      continue;
-    } else {
-      console.log(`[${i + 1}/${entries.length}] ⚪ ${oldName} → ${newName} (0 emails, delete)`);
+    let messages = 0;
+    let threads = 0;
+    try {
+      const info = gog(['gmail', 'labels', 'get', oldName, '--json', '--readonly', '--no-input']);
+      messages = (info && info.label && info.label.messagesTotal) || 0;
+      threads = (info && info.label && info.label.threadsTotal) || 0;
+    } catch (e) {
+      messages = 0;
+      threads = 0;
     }
 
-    // Delete old label (even if count > 0 — the emails now have the new label)
+    if (!newName) {
+      console.log(`[${i + 1}/${entries.length}] ℹ️  ${oldName} (${messages} emails) — no mapping, keep manually`);
+      continue;
+    }
+
+    console.log(`[${i + 1}/${entries.length}] 🔄 ${oldName} → ${newName} (${messages} emails / ${threads} threads)`);
+
+    if (dryRun) {
+      try {
+        const sample = gog(['gmail', 'search', labelQuery(oldName), '--max', '5', '--json', '--readonly', '--no-input']);
+        for (const t of (sample && sample.threads) || []) {
+          console.log(`      📧 ${(t.from || '?').substring(0, 40)} | ${(t.subject || '?').substring(0, 50)}`);
+        }
+      } catch (e) {
+        console.log('      (sample unavailable)');
+      }
+      console.log(`  🗑️  [DRY RUN] would delete old label: ${oldName}`);
+      continue;
+    }
+
+    if (messages > 0) {
+      let threadIds = [];
+      if (threads > 0) {
+        const searchRes = gog(['gmail', 'search', labelQuery(oldName), '--all', '--json', '--readonly', '--no-input']);
+        threadIds = ((searchRes && searchRes.threads) || []).map((t) => t.id);
+      }
+      for (let j = 0; j < threadIds.length; j += 100) {
+        const chunk = threadIds.slice(j, j + 100);
+        gog(['gmail', 'labels', 'modify', ...chunk, `--add=${newName}`, '--force', '--json']);
+      }
+      console.log(`  ✅ Migrated ${threadIds.length} threads to ${newName}`);
+    } else {
+      console.log(`  ⚪ ${oldName} → ${newName} (0 emails)`);
+    }
+
     try {
-      await gmail.users.labels.delete({ userId: 'me', id: oldId });
+      gog(['gmail', 'labels', 'delete', oldName, '--force', '--json']);
       console.log(`  🗑️  Deleted old label: ${oldName}`);
     } catch (e) {
-      console.log(`  ⚠️  Could not delete ${oldName}: ${e.message}`);
+      console.log(`  ⚠️  Could not delete ${oldName}: ${(e.stderr || e.message || '').toString().trim()}`);
     }
-    await new Promise(r => setTimeout(r, 300));
   }
 
-  console.log('\n✅ Label migration complete.');
+  console.log('\n═══════════════════════');
+  console.log(dryRun ? '✅ Label migration dry-run complete.' : '✅ Label migration complete.');
+  if (dryRun) console.log('Run without --dry-run to execute');
 }
 
-main().catch(console.error);
+try {
+  main();
+} catch (e) {
+  console.error(`错误：${(e.stderr || e.message || '').toString().trim()}`);
+  console.error('提示：需先授权 gog auth add <你的gmail> --services gmail --gmail-scope full --extra-scopes https://www.googleapis.com/auth/gmail.labels --force-consent');
+  process.exit(1);
+}

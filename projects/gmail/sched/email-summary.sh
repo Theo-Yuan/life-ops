@@ -17,13 +17,13 @@ trap 'rm -f "$PROMPT_FILE"' EXIT
 
 log() { echo "[$(date '+%F %T')] $*" >>"$LOG"; }
 
-# ── 1. fetch emails ────────────────────────────────────────────────
+# ── 1. fetch emails (via gog CLI) ─────────────────────────────────
 log "fetching emails..."
-FETCH_OUTPUT=$(/Users/theoyuan/.nvm/versions/node/v23.3.0/bin/node "$PROJECT_DIR/scripts/fetch-emails.cjs" 2>&1) || {
-    log "FATAL: fetch-emails.cjs failed"
+FETCH_OUTPUT=$(/Users/theoyuan/.nvm/versions/node/v23.3.0/bin/node "$PROJECT_DIR/scripts/gog-fetch.cjs" 2>&1) || {
+    log "FATAL: gog-fetch.cjs failed"
     echo "$FETCH_OUTPUT" >>"$LOG"
     case "$FETCH_OUTPUT" in
-        *invalid_grant*) log "HINT: Gmail OAuth refresh token expired (invalid_grant). 重新授权: cd ~/.gmail-mcp-server && npm run auth" ;;
+        *auth*|*invalid_grant*|*expired*|*credential*) log "HINT: Gmail 授权失效。重新授权: gog auth add <你的gmail邮箱> --services gmail --gmail-scope full --extra-scopes https://www.googleapis.com/auth/gmail.labels --force-consent" ;;
     esac
     exit 1
 }

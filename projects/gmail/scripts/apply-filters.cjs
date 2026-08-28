@@ -1,32 +1,8 @@
-/**
- * Apply all Gmail filters to existing inbox emails.
- * For each filter: search inbox with the same criteria, then apply the same actions.
- */
-const { google } = require('googleapis');
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
+// apply-filters.cjs — 用 gog CLI 将现有 Gmail 过滤器重新应用到收件箱（线程级）。
+const gog = require('./lib/gog.cjs');
 
-const CREDENTIALS_PATH = process.env.GMAIL_CREDENTIALS_PATH || 
-  path.join(process.env.HOME, '.gmail-mcp', 'credentials.json');
-const OAUTH_PATH = process.env.GMAIL_OAUTH_PATH || 
-  path.join(process.env.HOME, '.gmail-mcp', 'gcp-oauth.keys.json');
-
-async function getAuth() {
-  const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const oauthKeys = JSON.parse(fs.readFileSync(OAUTH_PATH, 'utf8'));
-  const { client_id, client_secret } = oauthKeys.installed || oauthKeys.web;
-  
-  const auth = new google.auth.OAuth2(client_id, client_secret);
-  auth.setCredentials(credentials);
-  return auth;
-}
-
-async function applyFilterToInbox(auth, filter) {
-  const gmail = google.gmail({ version: 'v1', auth });
-  const criteria = filter.criteria;
-  const action = filter.action || {};
-  
-  // Build search query from filter criteria
+function buildQuery(criteria) {
   const parts = [];
   if (criteria.from) parts.push(`from:(${criteria.from})`);
   if (criteria.to) parts.push(`to:(${criteria.to})`);
@@ -34,140 +10,91 @@ async function applyFilterToInbox(auth, filter) {
   if (criteria.query) parts.push(`(${criteria.query})`);
   if (criteria.hasAttachment) parts.push('has:attachment');
   if (criteria.excludeChats) parts.push('-in:chats');
-  
-  const query = `in:inbox ${parts.join(' ')}`.trim();
-  
-  let totalProcessed = 0;
-  let pageToken = null;
-  
-  while (true) {
-    try {
-      const res = await gmail.users.messages.list({
-        userId: 'me',
-        q: query,
-        maxResults: 500,
-        pageToken: pageToken || undefined,
-      });
-      
-      const messages = res.data.messages || [];
-      if (messages.length === 0) break;
-      
-      const ids = messages.map(m => m.id);
-      
-      // Batch modify in chunks of 500
-      for (let i = 0; i < ids.length; i += 500) {
-        const batch = ids.slice(i, i + 500);
-        try {
-          await gmail.users.messages.batchModify({
-            userId: 'me',
-            requestBody: {
-              ids: batch,
-              addLabelIds: action.addLabelIds || [],
-              removeLabelIds: action.removeLabelIds || [],
-            },
-          });
-          totalProcessed += batch.length;
-        } catch (e) {
-          // Rate limit - wait and retry
-          if (e.code === 429 || (e.errors && e.errors[0]?.reason === 'rateLimitExceeded')) {
-            console.log(`  Rate limited, waiting 2s...`);
-            await new Promise(r => setTimeout(r, 2000));
-            i -= 500; // retry this batch
-            continue;
-          }
-          console.error(`  Error batch modifying: ${e.message}`);
-        }
-        // Small delay between batches
-        await new Promise(r => setTimeout(r, 200));
-      }
-      
-      pageToken = res.data.nextPageToken;
-      if (!pageToken) break;
-      
-      // Delay between pages
-      await new Promise(r => setTimeout(r, 300));
-    } catch (e) {
-      if (e.code === 429 || (e.errors && e.errors[0]?.reason === 'rateLimitExceeded')) {
-        console.log(`  Rate limited on search, waiting 3s...`);
-        await new Promise(r => setTimeout(r, 3000));
-        continue;
-      }
-      console.error(`  Search error for query "${query}": ${e.message}`);
-      break;
-    }
-  }
-  
-  return totalProcessed;
+  return `in:inbox ${parts.join(' ')}`.trim();
 }
 
-function filterDescription(filter) {
+function labelNames(ids, idToName) {
+  return (ids || []).map((id) => idToName[id] || id).join(', ');
+}
+
+function filterDescription(filter, idToName) {
   const c = filter.criteria || {};
   const a = filter.action || {};
   const parts = [];
   if (c.from) parts.push(`from:${c.from}`);
   if (c.subject) parts.push(`subject:${c.subject}`);
   if (c.query) parts.push(`q:${c.query}`);
-  const labels = [...(a.addLabelIds || []).map(l => `+${l}`), ...(a.removeLabelIds || []).map(l => `-${l}`)];
-  return `${parts.join(', ') || '?'} → [${labels.join(', ')}]`;
+  const adds = (a.addLabelIds || []).map((l) => `+${idToName[l] || l}`);
+  const removes = (a.removeLabelIds || []).map((l) => `-${idToName[l] || l}`);
+  return `${parts.join(', ') || '?'} → [${[...adds, ...removes].join(', ')}]`;
 }
 
-async function main() {
-  console.log('🔐 Authenticating...');
-  const auth = await getAuth();
-  const gmail = google.gmail({ version: 'v1', auth });
-  
+function main() {
+  const dryRun = process.argv.includes('--dry-run');
+  console.log(`${dryRun ? '🔍 DRY RUN (preview only)' : '🚀 APPLY MODE'}\n`);
+
   console.log('📋 Fetching filters...');
-  const filtersRes = await gmail.users.settings.filters.list({ userId: 'me' });
-  const filters = filtersRes.data.filter || [];
+  const filtersRes = gog(['gmail', 'settings', 'filters', 'list', '--json', '--readonly', '--no-input']);
+  const filters = (filtersRes && filtersRes.filters) || [];
   console.log(`Found ${filters.length} filters.\n`);
-  
+
+  const labelsRes = gog(['gmail', 'labels', 'list', '--json', '--readonly', '--no-input']);
+  const idToName = {};
+  for (const l of (labelsRes && labelsRes.labels) || []) idToName[l.id] = l.name;
+
   let grandTotal = 0;
-  const results = [];
-  
   for (let i = 0; i < filters.length; i++) {
     const f = filters[i];
-    const desc = filterDescription(f);
-    console.log(`[${i + 1}/${filters.length}] ${desc}`);
-    
-    const count = await applyFilterToInbox(auth, f);
-    results.push({ id: f.id, description: desc, processed: count });
-    grandTotal += count;
-    
-    if (count > 0) console.log(`  ✅ Processed ${count} emails`);
-    else console.log(`  ⚪ No unprocessed matches found`);
-  }
-  
-  console.log(`\n📊 Summary:`);
-  console.log(`   Total filters applied: ${filters.length}`);
-  console.log(`   Total emails processed: ${grandTotal}`);
-  
-  // Check remaining inbox
-  console.log(`\n📬 Checking inbox status...`);
-  const inboxRes = await gmail.users.labels.get({ userId: 'me', id: 'INBOX' });
-  console.log(`   Remaining in inbox: ${inboxRes.data.messagesTotal} (${inboxRes.data.messagesUnread} unread)`);
-  
-  // Get unclassified inbox samples
-  console.log(`\n🔍 Sampling unclassified inbox emails...`);
-  const sampleRes = await gmail.users.messages.list({
-    userId: 'me',
-    q: 'in:inbox',
-    maxResults: 20,
-  });
-  
-  if (sampleRes.data.messages) {
-    console.log(`   Sample of ${sampleRes.data.messages.length} remaining inbox emails:`);
-    for (const msg of sampleRes.data.messages) {
-      try {
-        const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'metadata', metadataHeaders: ['From', 'Subject', 'Date'] });
-        const headers = detail.data.payload.headers;
-        const from = headers.find(h => h.name === 'From')?.value || '?';
-        const subject = headers.find(h => h.name === 'Subject')?.value || '?';
-        console.log(`   📧 ${from.substring(0, 60)} | ${subject.substring(0, 60)}`);
-      } catch (e) {
-        // skip
+    const add = (f.action && f.action.addLabelIds) || [];
+    const remove = (f.action && f.action.removeLabelIds) || [];
+    console.log(`[${i + 1}/${filters.length}] ${filterDescription(f, idToName)}`);
+
+    const query = buildQuery(f.criteria || {});
+
+    if (dryRun) {
+      const res = gog(['gmail', 'search', query, '--max', '10', '--json', '--readonly', '--no-input']);
+      const threads = (res && res.threads) || [];
+      if (threads.length === 0) {
+        console.log('  ⚪ No matches');
+        continue;
       }
+      grandTotal += threads.length;
+      console.log(`  [DRY RUN] 匹配 ${threads.length}+ 线程; 加标签: ${labelNames(add, idToName) || '(无)'}; 减标签: ${labelNames(remove, idToName) || '(无)'}`);
+      for (const t of threads.slice(0, 5)) {
+        console.log(`      📧 ${(t.from || '?').substring(0, 40)} | ${(t.subject || '?').substring(0, 50)}`);
+      }
+      if (threads.length > 5) console.log('      ... and more');
+    } else {
+      const searchRes = gog(['gmail', 'search', query, '--all', '--json', '--readonly', '--no-input']);
+      const threads = (searchRes && searchRes.threads) || [];
+      const threadIds = threads.map((t) => t.id);
+      if (threadIds.length === 0) {
+        console.log('  ⚪ No unprocessed matches found');
+        continue;
+      }
+      for (let j = 0; j < threadIds.length; j += 100) {
+        const chunk = threadIds.slice(j, j + 100);
+        const args = ['gmail', 'labels', 'modify', ...chunk];
+        if (add.length) args.push(`--add=${add.join(',')}`);
+        if (remove.length) args.push(`--remove=${remove.join(',')}`);
+        args.push('--force', '--json');
+        gog(args);
+      }
+      grandTotal += threadIds.length;
+      console.log(`  ✅ Processed ${threadIds.length} threads`);
     }
   }
+
+  console.log(`\n📊 Summary:`);
+  console.log(`   Total filters: ${filters.length}`);
+  console.log(`   ${dryRun ? 'Would process ≥' : 'Processed'} ${grandTotal} threads`);
+  if (dryRun) console.log('Run without --dry-run to execute');
 }
 
-main().catch(console.error);
+try {
+  main();
+} catch (e) {
+  console.error(`错误：${(e.stderr || e.message || '').toString().trim()}`);
+  console.error('提示：需先授权 gog auth add <你的gmail> --services gmail --gmail-scope full --extra-scopes https://www.googleapis.com/auth/gmail.labels --force-consent');
+  process.exit(1);
+}
