@@ -50,7 +50,7 @@ cat > "$PROMPT_FILE" <<PROMPT_EOF
 3. 其他邮件：按 category 分组，每封仅 sender + subject
 4. 按以下格式生成（Discord markdown）：
 
-```
+\`\`\`
 📊 𝗗𝗮𝗶𝗹𝘆 𝗗𝗶𝗴𝗲𝘀𝘁  ·  {date}
 {总体摘要段落}
 
@@ -67,7 +67,7 @@ cat > "$PROMPT_FILE" <<PROMPT_EOF
 ━━━━━━━━━━━━━━━━━━━━
 · NYT — Opinion Today: These 25 items...
 · LinkedIn — 12位会员浏览了您的档案
-```
+\`\`\`
 
 ◆ 重要类别用粗体标题 + 分隔线，每封带 🔴未读/✅已读 标记
 ◆ 不重要类别合并到同一分隔线下，紧凑排列
