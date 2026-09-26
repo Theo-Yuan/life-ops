@@ -1,0 +1,33 @@
+direction: right
+machine: 本机环境 {
+  config: 忽略提交的配置 {
+    discord: .agents/discord.config
+    profiles: 各项目 profile.md / .env
+    article: digest_config
+  }
+  cli: 命令行工具 {
+    python: Python + SQLite
+    node: Node + gog
+    scheduler: reveille
+    agent: opencode
+  }
+  data: 本地数据 {
+    db: 训练 / 英语数据库
+    mail: 邮件摘要 JSON
+    logs: reveille 执行记录与日志
+  }
+}
+external: 外部服务 {
+  xunji: 训记 API
+  gmail: Gmail OAuth
+  discord: Discord
+}
+machine.cli.python -> machine.data.db: 读写
+machine.cli.python -> external.xunji: 需训练 API Key
+machine.cli.node -> external.gmail: 需 gog 本机授权
+machine.cli.node -> machine.data.mail: 写入
+machine.cli.scheduler -> machine.data.logs: 写入
+machine.cli.agent -> external.discord: 需通知目标及 Agent 授权
+machine.config.discord -> machine.cli.agent: Discord 目标
+machine.config.profiles -> machine.cli.python: 领域配置（按需）
+machine.config.article -> machine.cli.agent: 文章通知目标（任务已暂停）

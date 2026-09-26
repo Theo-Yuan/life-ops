@@ -1,0 +1,46 @@
+specification {
+  element actor
+  element system
+  element component
+}
+model {
+  owner = actor '维护者'
+  scheduler = system 'reveille' {
+    description '本机定时调度与执行记录（仓库外配置）'
+  }
+  discord = system 'Discord'
+  gmailApi = system 'Gmail'
+  trainApi = system '训记 API'
+  agent = system 'opencode'
+  lifeops = system 'Life Ops' {
+    workout = component '训练自动化'
+    english = component '英语学习与听写'
+    gmail = component '邮件处理'
+    article = component '文章日报' {
+      description '脚本保留，当前调度暂停'
+    }
+    finance = component '理财学习'
+    report = component '聚合日报'
+    health = component '任务巡检'
+    records = component '本地数据与审计'
+    knowledge = component '领域知识库'
+  }
+  owner -> lifeops '学习与维护'
+  scheduler -> lifeops '执行已启用的任务'
+  lifeops -> agent '调用 Agent'
+  lifeops -> trainApi '同步训练'
+  lifeops -> gmailApi '读取邮件'
+  lifeops.workout -> trainApi '同步训练数据'
+  lifeops.gmail -> gmailApi '读取邮件'
+  lifeops.workout -> lifeops.records '训练数据'
+  lifeops.english -> lifeops.records '学习记录与听写快照'
+  lifeops.gmail -> lifeops.records '邮件摘要文件'
+  lifeops.report -> lifeops.records '读取领域数据'
+  lifeops.report -> scheduler '读取执行记录'
+  lifeops.health -> scheduler '读取配置、执行记录和日志'
+  lifeops.health -> lifeops.records '保存审计快照及故障记录'
+  lifeops.report -> agent '生成日报与发送指令'
+  lifeops.health -> agent '故障时排查和通知'
+  agent -> discord '发送私信'
+  lifeops.knowledge -> owner '提供公开领域知识'
+}

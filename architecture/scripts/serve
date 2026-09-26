@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common"
+require_likec4
+start_kroki
+printf 'LikeC4 viewer: http://localhost:%s\n' "${PORT:-5173}"
+exec "$LIKEC4" serve "$ROOT/likec4" --port "${PORT:-5173}"

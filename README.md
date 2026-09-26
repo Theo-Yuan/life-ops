@@ -21,6 +21,8 @@ life-ops/
 └── .agents/skills/  # 全部领域技能（合并于根）
 ```
 
+本地项目结构、数据流和维护工作流见 [本地项目文档](local-docs/README.md)；`docs/` 是公开的领域知识库。
+
 ## 快速开始
 
 ```bash

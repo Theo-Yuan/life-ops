@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common"
+[[ $# -eq 1 ]] || { echo "Usage: $0 architecture/diagrams/source/<name>.d2" >&2; exit 2; }
+source_path="$1"
+[[ "$source_path" == /* ]] || source_path="$(pwd)/$source_path"
+source_path="$(cd "$(dirname "$source_path")" && pwd)/$(basename "$source_path")"
+command -v d2 >/dev/null || { echo 'Install D2 CLI first' >&2; exit 1; }
+d2 validate "$source_path"
+start_kroki
+render_d2 "$source_path"

@@ -1,0 +1,6 @@
+services:
+  kroki:
+    image: yuzutech/kroki:0.32.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KROKI_PORT:-8000}:8000"

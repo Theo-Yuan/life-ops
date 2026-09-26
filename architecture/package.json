@@ -1,0 +1,14 @@
+{
+  "name": "life-ops-architecture",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "bash ./scripts/serve",
+    "render": "bash ./scripts/render",
+    "render-all": "bash ./scripts/render-all",
+    "validate": "bash ./scripts/validate"
+  },
+  "devDependencies": {
+    "likec4": "1.59.4"
+  }
+}

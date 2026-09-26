@@ -1,0 +1,18 @@
+direction: down
+reveille: reveille 定时触发
+aggregate: aggregate.py 读取本地数据
+workout: 训练数据库
+english: 英语数据库与听写快照
+gmail: 邮件摘要 JSON
+runs: reveille 执行记录
+report: report.sh 提取模块摘要
+agent: opencode 生成中文日报
+discord: Discord 私信
+reveille -> report
+workout -> aggregate
+english -> aggregate
+gmail -> aggregate
+runs -> aggregate
+aggregate -> report: JSON
+report -> agent: 数据 + 提示词
+agent -> discord: 发送

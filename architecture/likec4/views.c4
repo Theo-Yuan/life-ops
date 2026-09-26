@@ -1,0 +1,26 @@
+views {
+  view context {
+    title 'Life Ops 系统边界'
+    include owner -> lifeops
+    include scheduler -> lifeops
+    include lifeops -> trainApi
+    include lifeops -> gmailApi
+    include lifeops -> agent
+    include agent -> discord
+  }
+  view operations of lifeops {
+    title '运营与领域数据'
+    include workout -> records
+    include article
+    include finance
+    include knowledge
+    include english -> records
+    include gmail -> records
+    include report -> records
+    include report -> scheduler
+    include health -> scheduler
+    include health -> records
+    include report -> agent
+    include health -> agent
+  }
+}

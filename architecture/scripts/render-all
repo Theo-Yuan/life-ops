@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common"
+start_kroki
+for source in "$ROOT"/diagrams/source/*.d2; do
+  [[ -f "$source" ]] || continue
+  "$ROOT/scripts/render" "$source"
+done

@@ -1,0 +1,14 @@
+direction: down
+scheduler: reveille 任务配置 / 执行记录 / 日志
+inspect: task_health.py 检查最近 N 天
+snapshot: audit/snapshots/ 保存快照
+decide: 有失败? {
+  shape: diamond
+}
+healthy: 结束（无故障）
+incident: audit/incidents/ 写故障草稿
+agent: opencode 排查修复并发送通知
+scheduler -> inspect -> snapshot -> decide
+decide -> healthy: 否
+decide -> incident: 是
+incident -> agent

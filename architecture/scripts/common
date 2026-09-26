@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LIKEC4="$ROOT/node_modules/.bin/likec4"
+COMPOSE="$ROOT/infra/kroki/compose.yaml"
+KROKI_URL="${KROKI_URL:-http://127.0.0.1:${KROKI_PORT:-8000}}"
+KROKI_URL="${KROKI_URL%/}"
+require_likec4() {
+  [[ -x "$LIKEC4" ]] || { echo "Install LikeC4: cd $ROOT && npm ci" >&2; return 1; }
+}
+start_kroki() {
+  if curl --silent --fail --max-time 2 "$KROKI_URL/" >/dev/null; then return; fi
+  [[ "$KROKI_URL" == "http://127.0.0.1:${KROKI_PORT:-8000}" ]] || { echo "Kroki unavailable at $KROKI_URL" >&2; return 1; }
+  docker compose -f "$COMPOSE" up -d --wait --pull never kroki
+  local attempt
+  for attempt in {1..30}; do
+    if curl --silent --fail --max-time 2 "$KROKI_URL/" >/dev/null; then return; fi
+    sleep 1
+  done
+  echo "Kroki did not become ready at $KROKI_URL" >&2
+  return 1
+}
+render_d2() {
+  local source="$1" name output temp
+  [[ -f "$source" && "$source" == "$ROOT/diagrams/source/"*.d2 ]] || { echo "Expected a .d2 file under $ROOT/diagrams/source/" >&2; return 1; }
+  name="$(basename "${source%.d2}")"
+  output="$ROOT/diagrams/generated/$name.svg"
+  mkdir -p "$(dirname "$output")"
+  temp="$(mktemp "${output}.XXXXXX")"
+  if ! curl --fail-with-body --silent --show-error --max-time 60 -H 'Content-Type: text/plain' --data-binary "@$source" "$KROKI_URL/d2/svg" -o "$temp"; then
+    rm -f "$temp"
+    return 1
+  fi
+  mv "$temp" "$output"
+  printf '%s\n' "$output"
+}

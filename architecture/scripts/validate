@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/common"
+require_likec4
+command -v d2 >/dev/null || { echo 'Install D2 CLI first' >&2; exit 1; }
+"$LIKEC4" validate "$ROOT/likec4"
+start_kroki
+for source in "$ROOT"/diagrams/source/*.d2; do
+  [[ -f "$source" ]] || continue
+  d2 validate "$source"
+  render_d2 "$source" >/dev/null
+done
